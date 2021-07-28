@@ -1,0 +1,197 @@
+/* fs.c
+   Some useful functions for OSP Practical Case Study E
+*/
+#include"fs.h"
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+
+uint8_t bitmap[20];
+struct entry directory[32];
+
+int toggle_bit(int block)
+{
+
+	int elem=block/8;
+	int pos=block%8;
+	int mask=1<<pos;
+
+	bitmap[elem]^=mask;
+
+	return bitmap[elem]&mask;
+}
+int block_status(int block)
+{
+	int elem=block/8;
+	int pos=block%8;
+	int mask=1<<pos;
+
+	return bitmap[elem]&mask;
+}
+int menu(){
+	int operation = -1;
+	printf("\n\n---------------------------------------------------------------\n\n");
+	while(operation<0 || operation>7){
+		printf("\n0: Exit");
+		printf("\n1: List File in the Directory");
+		printf("\n2: Display the Free Bitmap");
+		printf("\n3: Open and create file");
+		printf("\n4: (Read file)List the blocks occupied by the currently open file");
+		printf("\n5: (Write file)Allocate another block to the currently open file");
+		printf("\n6: Delete file");
+		printf("\n7: Clear screen \n---->   ");
+
+		scanf("%d",&operation);
+	}
+	return operation;
+}
+void resetBitMap(){
+   for(int i = 0; i< 8; i++){
+      bitmap[i] = 0;
+   }
+} 
+void initialiseEntry(int i){
+		directory[i].user = -1;
+		directory[i].name[0] = '\0';
+		directory[i].extension[0] = '\0';
+		directory[i].block[0] = 0;
+		directory[i].blockcount = 0;
+}
+void ListFiles(int index){
+	if(directory[index].blockcount != 0){
+		printf("\nIndex number -> %d ",index);
+		printf("\n\n Name : %s",directory[index].name);
+		printf("\n Extenstiuon : %s",directory[index].extension);
+		printf("\n Block count : %d",directory[index].blockcount);
+	}
+}
+void displayBitmap(){
+	printf("\n\n ----------------- Block status ----------------- \n");
+	for(int i = 0; i< 160; i++){
+		printf("%d", block_status(i));
+	}
+}
+void openCreateFile(){
+	char name[9];
+	char ext[4];
+	char temp;
+	scanf("%c",&temp);
+	printf("\nEnter file name : ");
+	fgets(name,9,stdin);
+	printf("\nEnter file extenstion : ");
+	fgets(ext,4,stdin);
+	
+	for(int i = 0; i< 32; i++){
+		if(strcmp(name,directory[i].name) == 0 && strcmp(ext,directory[i].extension) == 0 && directory[i].blockcount!=0){
+			char fName[15];
+			int fNameIndex = 0;
+			for(; name[fNameIndex]!='\0'; fNameIndex++){
+				fName[fNameIndex] = name[fNameIndex];
+			}
+			fName[fNameIndex] = '.';
+			fNameIndex++;
+			for(int j = 0; ext[j] != '\0'; j++){
+				fName[fNameIndex] = ext[j];
+				fNameIndex++;
+			}
+			fName[fNameIndex] ='\0';
+
+			//now fName will consist of file name as well as extenstion so open file
+			FILE *fp = malloc(1*sizeof(fp));// point file pointer
+			fp = fopen(fName , "r"); // open file in read mode
+			
+			if (fp != NULL ) {// check is file open
+				printf("\n");
+				while(!feof(fp)){
+
+					char temp = fgetc(fp); // get one character from the file
+					printf("%c",temp);
+				}
+			}
+			else {
+				printf("\nNo data Present in file");
+			}
+			return;
+		}
+	}
+	//as we have been search all directory no file found so now we will create that file
+	for(int i = 0; i < 160; i++){ // check which block from bitmap is free for storing the file
+		if(!block_status(i)){ // if block is empty  
+			toggle_bit(i); // set that block that we find free
+			
+			int user = -2;
+			while(user<-1 || user == 0 || user >1){ // now take user status
+				printf("\n1 for admin :");
+				printf("\n-1 for user :");
+				scanf("%d",&user);
+			}
+			
+			//now find slot in directory array
+			for(int i = 0; i< 32; i++){
+				if(directory[i].blockcount == 0){
+					strcpy(directory[i].name,name);
+					strcpy(directory[i].extension,ext);
+					directory[i].user = user;
+					directory[i].blockcount ++;
+					directory[i].block[0] = i; // keep track which bit or bits of bitmap we are using for allocation of free space
+					return;
+				}
+			}
+		}
+	}
+}
+void ReadFile(int index){
+	for(int i = 0; i < directory[index].blockcount; i++ ){
+		printf("\nMemmory initialize in block # %d",directory[index].block[i]);
+	}
+}
+void writeFile(int index){
+	if(directory[index].blockcount<8){
+		for(int i = 0; i< 160; i++){
+			if(!block_status(i)){ // if block is empty  
+				toggle_bit(i); // set that block that we find free
+				directory[index].blockcount++;
+				directory[index].block[directory[index].blockcount-1] = i;
+				break;
+			}
+		}
+	}
+	else {
+		printf("\nNo block is present for this file");
+	}
+}
+
+int getNumber(int bit){
+	if(bit == 7){
+		return 127;
+	}
+	else if(bit == 6){
+		return 191;
+	}
+	else if(bit == 5){
+		return 223;
+	}
+	else if(bit == 4){
+		return 239;
+	}
+	else if(bit == 3){
+		return 247;
+	}
+	else if(bit == 2){
+		return 251;
+	}
+	else if(bit == 1){
+		return 253;
+	}
+	else if(bit == 0){
+		return 254;
+	}
+}
+void deleteFile(int index){
+	for(int i = 0; i < directory[index].blockcount; i++){
+		int elem = directory[index].block[i]/8;
+		int pos = directory[index].block[i]%8;
+		bitmap[elem] &= getNumber(pos);
+	}
+	directory[index].blockcount = 0;
+}

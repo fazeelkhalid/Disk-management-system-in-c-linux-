@@ -1,0 +1,72 @@
+#include<stdio.h>
+#include<stdlib.h>
+/* stdio.h will be found in the system path */
+#include"fs.h"
+
+/* fs.h will be found in the local path */
+
+
+
+
+int main(int ac, char**av)
+{
+	resetBitMap();
+	for(int i = 0; i< 32; i++){
+		initialiseEntry(i);
+	}
+	int opetion = -1;
+	while(opetion){
+		opetion = menu();
+		if(opetion == 1){
+			int index = -1;
+			while(index<0 || index>20){
+				printf("\nEnter index : ");
+				scanf("%d",&index);
+			}
+			ListFiles(index);
+		}
+		else if(opetion == 2){
+			displayBitmap();
+		}
+		else if(opetion == 3){
+			openCreateFile();
+		}
+		else if(opetion == 4){
+			int directoryIndex = -1;
+			while(directoryIndex<0 || directoryIndex>31){
+				printf("Enter Directory index : ");
+				scanf("%d",&directoryIndex);
+			}
+			ReadFile(directoryIndex);
+		}
+		else if(opetion == 5){ // allocate another index
+			int directoryIndex = -1;
+			while(directoryIndex<0 || directoryIndex>31){
+				printf("Enter Directory index : ");
+				scanf("%d",&directoryIndex);
+			}
+			writeFile(directoryIndex);
+
+		}
+		else if(opetion == 6){
+			int index = -1;
+			while(index<0 || index>31){
+				printf("\nEnter directory index : ");
+				scanf("%d",&index);
+			}
+			deleteFile(index);
+		}
+		else if(opetion == 7){
+			system("clear");
+		}
+	}
+
+	// printf("Please make me useful\n");
+	// int number;
+	// printf("\nEnter number : ");
+	// scanf("%d",&number);
+	// printf("\nReturn value is : %d\n\n",toggle_bit(number));
+
+	return 0;
+
+}
